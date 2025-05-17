@@ -13,7 +13,7 @@ SETS
     MACHINES_STATUS = {maintenance, available}
 
 VARIABLES
-    associated, follow, debtor_member, member, personal, trains, day_workout, personal_workout
+    associated, follow, debtor_member, member, personal, trains, day_workout, personal_workout, workout_history
 
 INVARIANT
     member <: USER
@@ -22,11 +22,12 @@ INVARIANT
     & associated : member +-> PLAN 
     & follow : member +-> personal
     & debtor_member <: member
-    & personal_workout : personal +-> WORKOUT
-    & day_workout : member +-> WORKOUT
+    & personal_workout : personal <-> WORKOUT
+    & day_workout : member <-> WORKOUT
+    & workout_history : member <-> WORKOUT
 
 INITIALISATION
-    associated, follow, debtor_member, member, personal, trains, day_workout, personal_workout := {}, {}, {}, {}, {}, {}, {}, {}
+    associated, follow, debtor_member, member, personal, trains, day_workout, personal_workout, workout_history := {}, {}, {}, {}, {}, {}, {}, {}, {}
 
 OPERATIONS
 
@@ -63,10 +64,20 @@ unlink_personal(pp, mm) =
     THEN trains := trains - {mm |-> pp}
     END;
 
+create_personal_workout(pp, ww) =
+    PRE pp : USER & pp : personal & ww : WORKOUT & (pp |-> ww) /: personal_workout
+    THEN personal_workout := personal_workout \/ {pp |-> ww}
+    END;
+
 assign_workout(pp, mm, ww) =
     PRE mm : USER & mm : member & pp : USER & pp : personal & (mm |-> pp) : trains
-    & ww : WORKOUT & (pp |-> ww) : personal_workout & (mm |-> ww) : day_workout
-    THEN day_workout := day_workout \/ {mm |-> ww}
+    & ww : WORKOUT & (pp |-> ww) : personal_workout & (mm |-> ww) /: day_workout
+    THEN day_workout := {mm |-> ww} || workout_history := workout_history \/ { mm |-> ww }
+    END;
+    
+treinos <-- workouts_of_member(mm) =
+    PRE mm: USER & mm : member
+    THEN treinos := { ww | ww : WORKOUT & (mm |-> ww) : workout_history }
     END
 
 END
