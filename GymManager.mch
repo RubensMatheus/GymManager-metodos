@@ -261,6 +261,300 @@ status <-- get_equipment_status(ma) =
         ma : machines 
     THEN 
         status := machine_status(ma)
+    END;
+
+
+//---------------------Operaçãoes de pré-condição---------------------
+
+
+ok <-- pre_add_member(uu, plan) =
+  PRE
+    uu : USER
+    & uu /: member
+    & plan : PLAN
+  THEN
+    IF uu : USER & uu /: member & plan : PLAN THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
     END
+  END;
+
+ok <-- pre_cancel_member(mm) =
+  PRE
+    mm : member
+    & {mm} <<| associated : member - ({mm}) --> PLAN
+    & {mm} <<| presence : member - ({mm}) --> PRESENCE_STATUS
+    & {mm} <<| workout_history : member - ({mm}) <-> WORKOUT
+  THEN
+    IF
+      mm : member
+      & {mm} <<| associated : member - ({mm}) --> PLAN
+      & {mm} <<| presence : member - ({mm}) --> PRESENCE_STATUS
+      & {mm} <<| workout_history : member - ({mm}) <-> WORKOUT
+    THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+  
+ok <-- pre_the_month =
+    BEGIN
+        ok := TRUE
+    END;
+
+ok <-- pre_change_plan_price(plan, new_price) =
+  PRE
+    plan : PLAN
+    & new_price : NAT1
+  THEN
+    IF plan : PLAN & new_price : NAT1 THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_migrate_member_plan(mm, new_plan) =
+  PRE
+    mm : member
+    & new_plan : PLAN
+    & new_plan /= associated(mm)
+  THEN
+    IF mm : member & new_plan : PLAN & new_plan /= associated(mm) THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_record_payment(mm, value) =
+  PRE
+    mm : member
+    & value : NAT1
+    & value = (associated;plan_prices)(mm)
+    & payment(mm) = 0
+  THEN
+    IF mm : member & value : NAT1 & value = (associated;plan_prices)(mm) & payment(mm) = 0 THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_list_debtors =
+  BEGIN
+    ok := TRUE
+  END;
+
+ok <-- pre_check_in(mm) =
+  PRE
+    mm : member
+    & mm /: debtor_member
+    & presence(mm) /= present
+  THEN
+    IF mm : member & mm /: debtor_member & presence(mm) /= present THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_check_out(mm) =
+  PRE
+    mm : member
+    & mm /: debtor_member
+    & presence(mm) /= not_present
+  THEN
+    IF mm : member & mm /: debtor_member & presence(mm) /= not_present THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_list_present =
+  BEGIN
+    ok := TRUE
+  END;
+
+ok <-- pre_register_personal(pp) =
+  PRE
+    pp : USER
+    & pp /: personal
+    & pp /: member
+  THEN
+    IF pp : USER & pp /: personal & pp /: member THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_link_personal(pp, mm) =
+  PRE
+    mm : member
+    & mm /: debtor_member
+    & pp : personal
+    & (mm |-> pp) /: trains
+  THEN
+    IF mm : member & mm /: debtor_member & pp : personal & (mm |-> pp) /: trains THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_unlink_personal(pp, mm) =
+  PRE
+    mm : member
+    & pp : personal
+    & (mm |-> pp) : trains
+  THEN
+    IF mm : member & pp : personal & (mm |-> pp) : trains THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+  
+ok <-- pre_create_personal_workout(pp, ww) =
+  PRE
+    pp : personal
+    & ww : WORKOUT
+    & ww /: general_workout
+    & (pp |-> ww) /: personal_workout
+  THEN
+    IF pp : personal & ww : WORKOUT & ww /: general_workout & (pp |-> ww) /: personal_workout THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_assign_personal_workout(pp, mm, ww) =
+  PRE
+    mm : member
+    & mm /: debtor_member
+    & pp : personal
+    & (mm |-> pp) : trains
+    & ww : WORKOUT
+    & (pp |-> ww) : personal_workout
+    & (mm |-> ww) /: day_workout
+  THEN
+    IF mm : member
+      & mm /: debtor_member
+      & pp : personal
+      & (mm |-> pp) : trains
+      & ww : WORKOUT
+      & (pp |-> ww) : personal_workout
+      & (mm |-> ww) /: day_workout
+    THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_create_general_workout(ww) =
+  PRE
+    ww : WORKOUT
+    & ww /: ran(personal_workout |> {ww})
+  THEN
+    IF ww : WORKOUT & ww /: ran(personal_workout |> {ww}) THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_assign_workout(mm, ww) =
+  PRE
+    mm : member
+    & mm /: debtor_member
+    & ww : general_workout
+  THEN
+    IF mm : member & mm /: debtor_member & ww : general_workout THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_current_workout(mm) =
+  PRE
+    mm : member
+    & mm /: debtor_member
+    & mm : dom(day_workout)
+  THEN
+    IF mm : member & mm /: debtor_member & mm : dom(day_workout) THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_workouts_history(mm) =
+  PRE
+    mm : member
+    & mm /: debtor_member
+  THEN
+    IF mm : member & mm /: debtor_member THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_add_machine(ma) =
+  PRE
+    ma : MACHINES
+    & ma /: machines
+    & ma /: dom(machine_status)
+  THEN
+    IF ma : MACHINES & ma /: machines & ma /: dom(machine_status) THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_remove_machine(ma) =
+  PRE
+    ma : machines
+    & ma : dom(machine_status)
+    & {ma} <<| machine_status : machines - ({ma}) --> MACHINES_STATUS
+  THEN
+    IF ma : machines & ma : dom(machine_status) & {ma} <<| machine_status : machines - ({ma}) --> MACHINES_STATUS THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_set_equipment_status(ma, status) =
+  PRE
+    ma : machines
+    & status : MACHINES_STATUS
+    & (ma |-> status) /: machine_status
+  THEN
+    IF ma : machines & status : MACHINES_STATUS & (ma |-> status) /: machine_status THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
+ok <-- pre_get_equipment_status(ma) =
+  PRE
+    ma : machines
+  THEN
+    IF ma : machines THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END
 
 END
