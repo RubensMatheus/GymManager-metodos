@@ -68,17 +68,13 @@ cancel_member(mm) =
         workout_history := {mm} <<| workout_history
     END;
 
-//fazer passar um mês
-//the_month =
-//  PRE TRUE
-//  THEN
-//    /* Atualiza payment decrementando 1 se > 0 */
-//    payment := {mm | mm : member & payment(mm) > 0 => (payment(mm) - 1)} 
-//               \/ {mm | mm : member & payment(mm) = 0 => 0} ||
-//
-//    /* Atualiza debtor_member com membros cujo pagamento está 0 */
-//    debtor_member := {mm | mm : member & payment(mm) = 0}
-//  END;
+the_month =
+  BEGIN
+  
+    payment := payment <+ %mm.( mm : member & payment(mm) > 0 | payment(mm) - 1) ||
+  
+    debtor_member := {mm | mm : member & payment(mm) <= 1}
+  END;
 
 
 change_plan_price(plan, new_price) =
@@ -141,11 +137,9 @@ training <-- list_present =
         training := dom(presence |> {present})
     END;
 
-//-------------------------------------------------------------------------------
-
 register_personal(pp) =
     PRE 
-        pp : USER 
+        pp : USER
         & pp /: personal
         & pp /: member
     THEN 
@@ -155,6 +149,7 @@ register_personal(pp) =
 link_personal(pp, mm) =
     PRE  
         mm : member
+        & mm /: debtor_member
         & pp : personal 
         & (mm |-> pp) /: trains
     THEN 
@@ -186,6 +181,7 @@ create_personal_workout(pp, ww) =
 assign_personal_workout(pp, mm, ww) =
     PRE 
         mm : member 
+        & mm /: debtor_member
         & pp : personal 
         & (mm |-> pp) : trains
         & ww : WORKOUT 
@@ -207,6 +203,7 @@ create_general_workout (ww) =
 assign_workout (mm, ww) =
     PRE 
         mm : member
+        & mm /: debtor_member
         & ww : general_workout
     THEN 
         day_workout := {mm |-> ww} || 
@@ -216,16 +213,18 @@ assign_workout (mm, ww) =
 work <--current_workout(mm) = 
     PRE 
         mm : member
+        & mm /: debtor_member
         & mm : dom(day_workout)
     THEN
         work := day_workout(mm)
     END;
 
-treinos <-- workouts_of_member(mm) =
+history <-- workouts_history(mm) =
     PRE  
         mm : member
+        & mm /: debtor_member
     THEN 
-        treinos := { ww | ww : WORKOUT & (mm |-> ww) : workout_history }
+        history := { ww | ww : WORKOUT & (mm |-> ww) : workout_history }
     END;
 
 add_machine (ma) =
