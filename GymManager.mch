@@ -43,6 +43,7 @@ add_member(uu, plan) =
     PRE 
         uu : USER 
         & uu /: member 
+	& uu /: personal
         & plan : PLAN
     THEN 
         member := member \/ {uu} ||
@@ -144,6 +145,17 @@ register_personal(pp) =
         & pp /: member
     THEN 
         personal := personal \/ {pp}
+    END;
+
+forget_personal(pp) = 
+    PRE
+        pp : personal
+        & pp /: member
+        & {pp} <<| personal_workout : personal - ({pp}) <-> WORKOUT
+    THEN
+        personal := personal - {pp} ||
+        trains := trains |>> {pp} ||
+        personal_workout := {pp} <<| personal_workout
     END;
 
 link_personal(pp, mm) =
@@ -265,7 +277,6 @@ status <-- get_equipment_status(ma) =
 
 
 //---------------------Operaçãoes de pré-condição---------------------
-
 
 ok <-- pre_add_member(uu, plan) =
   PRE
@@ -391,6 +402,20 @@ ok <-- pre_register_personal(pp) =
       ok := FALSE
     END
   END;
+
+ok <-- pre_forget_personal(pp) =
+  PRE
+    pp : personal
+    & pp /: member
+    & {pp} <<| personal_workout : personal - ({pp}) <-> WORKOUT
+  THEN
+    IF pp : personal & pp /: member & {pp} <<| personal_workout : personal - ({pp}) <-> WORKOUT THEN
+      ok := TRUE
+    ELSE
+      ok := FALSE
+    END
+  END;
+
 
 ok <-- pre_link_personal(pp, mm) =
   PRE
