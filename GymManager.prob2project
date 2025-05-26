@@ -1,0 +1,47 @@
+{
+  "name": "GymManager",
+  "description": "(this project was created automatically from file C:\\Users\\ruben\\Documents\\graduacao\\metodos\\GymManager-metodos\\GymManager.mch)",
+  "machines": [
+    {
+      "name": "GymManager",
+      "description": "",
+      "location": "GymManager.mch",
+      "lastUsedPreferenceName": "default",
+      "temporalFormulas": [],
+      "ltlPatterns": [],
+      "symbolicCheckingFormulas": [],
+      "symbolicAnimationFormulas": [],
+      "testCases": [],
+      "traces": [],
+      "modelcheckingItems": [
+        {
+          "searchStrategy": "MIXED_BF_DF",
+          "options": [
+            "FIND_DEADLOCKS",
+            "FIND_INVARIANT_VIOLATIONS",
+            "FIND_ASSERTION_VIOLATIONS",
+            "STOP_AT_FULL_COVERAGE"
+          ],
+          "shouldExecute": true
+        }
+      ],
+      "proofObligationItems": [],
+      "simulations": [],
+      "visBVisualisation": null,
+      "historyChartItems": [],
+      "dotVisualizationItems": {},
+      "tableVisualizationItems": {}
+    }
+  ],
+  "requirements": [],
+  "preferences": [],
+  "metadata": {
+    "fileType": "Project",
+    "formatVersion": 37,
+    "savedAt": "2025-05-26T02:19:59.646931200Z",
+    "creator": "User",
+    "proB2KernelVersion": "4.12.2",
+    "proBCliVersion": null,
+    "modelName": null
+  }
+}

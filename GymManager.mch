@@ -84,7 +84,7 @@ cancel_member(mm) =
 the_month =
   BEGIN  
     payment := payment <+ %mm.( mm : member & payment(mm) > 0 | payment(mm) - 1) ||
-    debtor_member := {mm | mm : member & payment(mm) = 0} ||
+    debtor_member := debtor_member \/ {mm | mm : member & payment(mm) = 1} ||
     amount_check_in := amount_check_in <+ %mm.(mm : member | 0)
   END;
 
