@@ -11,9 +11,15 @@ SETS
     MACHINES;
     MACHINES_STATUS = {maintenance, available};
     PRESENCE_STATUS = {present, not_present}
+    
+CONSTANTS
+    c_limit
+    
+PROPERTIES
+    c_limit : NAT1
 
 VARIABLES
-    associated, member, debtor_member, personal, payment, plan_prices, presence, trains, day_workout, personal_workout, workout_history, machine_status, machines, general_workout
+    associated, member, debtor_member, personal, payment, plan_prices, presence, trains, day_workout, personal_workout, workout_history, machine_status, machines, general_workout, amount_check_in
 
 INVARIANT
     member <: USER
@@ -23,6 +29,9 @@ INVARIANT
     & payment : member --> 0..12
     & dom(associated) = dom(payment)
     & plan_prices : PLAN --> NAT1
+    & !mm.(mm : member & payment(mm) = 0 => mm : debtor_member)
+    & amount_check_in : member --> NAT
+    & !mm.(mm : member & associated(mm) = monthly => amount_check_in(mm) <= c_limit)
     & presence : member --> PRESENCE_STATUS
     & dom(associated) = dom(presence)
     & trains : member +-> personal
@@ -31,10 +40,10 @@ INVARIANT
     & day_workout : member +-> WORKOUT 
     & workout_history : member <-> WORKOUT
     & machines <: MACHINES
-    & machine_status : machines --> MACHINES_STATUS 
+    & machine_status : machines --> MACHINES_STATUS
 
 INITIALISATION
-    associated, member, debtor_member, personal, payment, presence, trains, day_workout, personal_workout, workout_history, machine_status, machines, general_workout := {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} ||
+    associated, member, debtor_member, personal, payment, presence, trains, day_workout, personal_workout, workout_history, machine_status, machines, general_workout, amount_check_in := {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} ||
     plan_prices := {monthly |-> 50, quarterly |-> 135, yearly |-> 480}
 
 OPERATIONS
@@ -43,13 +52,15 @@ add_member(uu, plan) =
     PRE 
         uu : USER 
         & uu /: member 
-	& uu /: personal
+	    & uu /: personal
         & plan : PLAN
     THEN 
         member := member \/ {uu} ||
         associated := associated <+ {uu |-> plan} ||
         payment := payment <+ {uu |-> 0} ||
-        presence := presence <+ { uu |-> not_present }
+        debtor_member := debtor_member \/ {uu} ||
+        presence := presence <+ { uu |-> not_present } ||
+        amount_check_in := amount_check_in <+ {uu |-> 0}
     END;
 
 cancel_member(mm) =
@@ -66,15 +77,15 @@ cancel_member(mm) =
         presence := {mm} <<| presence ||
         debtor_member := debtor_member - {mm} ||
         day_workout := {mm} <<| day_workout ||
-        workout_history := {mm} <<| workout_history
+        workout_history := {mm} <<| workout_history ||
+        amount_check_in := {mm} <<| amount_check_in
     END;
 
 the_month =
-  BEGIN
-  
+  BEGIN  
     payment := payment <+ %mm.( mm : member & payment(mm) > 0 | payment(mm) - 1) ||
-  
-    debtor_member := {mm | mm : member & payment(mm) <= 1}
+    debtor_member := {mm | mm : member & payment(mm) = 0} ||
+    amount_check_in := amount_check_in <+ %mm.(mm : member | 0)
   END;
 
 
@@ -91,6 +102,7 @@ migrate_member_plan(mm, new_plan) =
         mm : member
         & new_plan : PLAN
         & new_plan /= associated(mm)
+        & mm : debtor_member
     THEN
         associated := associated <+ {mm |-> new_plan}
     END;
@@ -107,7 +119,8 @@ record_payment(mm, value) =
         ELSIF associated(mm) = quarterly
             THEN payment(mm) := payment(mm) + 3
         ELSE payment(mm) := payment(mm) + 12
-        END
+        END ||
+        debtor_member := debtor_member - {mm}
     END;
     
 debtors <-- list_debtors = 
@@ -115,13 +128,16 @@ debtors <-- list_debtors =
         debtors := debtor_member 
     END;
 
-check_in(mm) =
+amount <-- check_in(mm) =
     PRE 
         mm : member 
         & mm /: debtor_member 
         & presence(mm) /= present
+        & (associated(mm) = monthly & amount_check_in(mm) < c_limit)
     THEN
-        presence := presence <+ { mm |-> present }
+        presence := presence <+ { mm |-> present } ||
+        amount_check_in(mm) := amount_check_in(mm) + 1 ||
+        amount := amount_check_in(mm) + 1
     END;
     
 check_out(mm) =
@@ -280,16 +296,16 @@ status <-- get_equipment_status(ma) =
 
 ok <-- pre_add_member(uu, plan) =
   PRE
-    uu : USER
-    & uu /: member
-    & plan : PLAN
+    uu : USER &
+    plan : PLAN
   THEN
-    IF uu : USER & uu /: member & plan : PLAN THEN
+    IF uu /: member & uu /: personal THEN
       ok := TRUE
     ELSE
       ok := FALSE
     END
   END;
+
 
 ok <-- pre_cancel_member(mm) =
   PRE
@@ -332,8 +348,10 @@ ok <-- pre_migrate_member_plan(mm, new_plan) =
     mm : member
     & new_plan : PLAN
     & new_plan /= associated(mm)
+    & mm : debtor_member
   THEN
-    IF mm : member & new_plan : PLAN & new_plan /= associated(mm) THEN
+    IF mm : member & new_plan : PLAN & new_plan /= associated(mm) & mm : debtor_member
+    THEN
       ok := TRUE
     ELSE
       ok := FALSE
@@ -354,6 +372,7 @@ ok <-- pre_record_payment(mm, value) =
     END
   END;
 
+
 ok <-- pre_list_debtors =
   BEGIN
     ok := TRUE
@@ -364,8 +383,10 @@ ok <-- pre_check_in(mm) =
     mm : member
     & mm /: debtor_member
     & presence(mm) /= present
+    & (associated(mm) = monthly & amount_check_in(mm) < c_limit)
   THEN
-    IF mm : member & mm /: debtor_member & presence(mm) /= present THEN
+    IF mm : member & mm /: debtor_member & presence(mm) /= present &  (associated(mm) = monthly & amount_check_in(mm) < c_limit)
+    THEN
       ok := TRUE
     ELSE
       ok := FALSE
